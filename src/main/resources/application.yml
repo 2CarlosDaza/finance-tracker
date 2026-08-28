@@ -3,7 +3,7 @@ spring:
     name: finance-tracker
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/financedb
+    url: jdbc:postgresql://localhost:5433/financedb
     username: ${DB_USERNAME:finance_user}
     password: ${DB_PASSWORD:finance_pass}
     driver-class-name: org.postgresql.Driver
