@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Tracker</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b35;
+    --text: #e6e8eb;
+    --muted: #8b93a1;
+    --accent: #4f8ff7;
+    --accent-dim: #24354f;
+    --danger: #f76a6a;
+    --ok: #4fd18b;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  header .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+  nav {
+    border-right: 1px solid var(--border);
+    padding: 16px 12px;
+  }
+  nav button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  nav button:hover {
+    background: var(--panel);
+    color: var(--text);
+  }
+  nav button.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  main {
+    padding: 32px;
+  }
+  .view { display: none; max-width: 480px; }
+  .view.active { display: block; }
+  .view h2 {
+    margin-top: 0;
+    font-size: 20px;
+  }
+  .view p.hint {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: -4px;
+  }
+  form {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  label {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  input, select, textarea {
+    background: #0f1115;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  button.submit {
+    background: var(--accent);
+    color: #0f1115;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  button.submit:hover { opacity: 0.9; }
+  button.submit:focus-visible, nav button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  #category-status, #transaction-status {
+    margin-top: 12px;
+    font-size: 13px;
+    min-height: 18px;
+  }
+  .status-ok { color: var(--ok); }
+  .status-error { color: var(--danger); }
+  .todo {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  code {
+    background: #0f1115;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <h1>Finance Tracker</h1>
+</header>
+
+<div class="layout">
+  <nav>
+    <button class="nav-btn active" data-view="categories">Registrar categoría</button>
+    <button class="nav-btn" data-view="transactions">Registrar transacción</button>
+  </nav>
+
+  <main>
+
+    <!-- Vista: Registrar categoría -->
+    <section class="view active" id="view-categories">
+      <h2>Registrar categoría</h2>
+      <p class="hint">Crea una nueva categoría de ingreso o gasto.</p>
+
+      <form id="category-form">
+        <label>
+          Nombre
+          <input type="text" name="name" placeholder="food" required>
+        </label>
+        <label>
+          Descripción
+          <input type="text" name="description" placeholder="food expenses">
+        </label>
+        <label>
+          Tipo
+          <select name="type" required>
+            <option value="EXPENSE">EXPENSE</option>
+            <option value="INCOME">INCOME</option>
+          </select>
+        </label>
+        <button type="submit" class="submit">Guardar categoría</button>
+        <div id="category-status"></div>
+      </form>
+    </section>
+
+    <!-- Vista: Registrar transacción -->
+    <section class="view" id="view-transactions">
+      <h2>Registrar transacción</h2>
+      <p class="hint">El select de categoría se llena desde <code>GET /api/v1/categories</code>.</p>
+
+      <form id="transaction-form">
+        <label>
+          Categoría
+          <select name="categoryId" id="category-select" required>
+            <option value="" disabled selected>Cargando categorías...</option>
+          </select>
+        </label>
+
+        <!-- TODO: agrega aquí el resto de campos (monto, fecha, descripción, etc). -->
+
+        <button type="submit" class="submit">Guardar transacción</button>
+        <div id="transaction-status"></div>
+      </form>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  const API_BASE = "http://localhost:8080";
+
+  // --- Navegación entre vistas ---
+  const navButtons = document.querySelectorAll(".nav-btn");
+  const views = document.querySelectorAll(".view");
+
+  navButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      navButtons.forEach(b => b.classList.remove("active"));
+      views.forEach(v => v.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(`view-${btn.dataset.view}`).classList.add("active");
+    });
+  });
+
+  // --- Formulario: Registrar categoría ---
+  const categoryForm = document.getElementById("category-form");
+  const categoryStatus = document.getElementById("category-status");
+
+  categoryForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(categoryForm);
+    const payload = {
+      name: formData.get("name"),
+      description: formData.get("description"),
+      type: formData.get("type"),
+    };
+
+    categoryStatus.textContent = "Guardando...";
+    categoryStatus.className = "";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/categories`, {
+        method: "POST",
+        headers: {
+          "Accept": "*/*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      categoryStatus.textContent = "Categoría creada correctamente.";
+      categoryStatus.className = "status-ok";
+      categoryForm.reset();
+    } catch (err) {
+      categoryStatus.textContent = `Error al crear la categoría: ${err.message}`;
+      categoryStatus.className = "status-error";
+    }
+  });
+
+  // --- Cargar categorías en el select de transacciones ---
+  const categorySelect = document.getElementById("category-select");
+
+  async function loadCategories() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/categories`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const categories = await res.json();
+
+      categorySelect.innerHTML = "";
+
+      if (categories.length === 0) {
+        categorySelect.innerHTML = `<option value="" disabled selected>No hay categorías creadas</option>`;
+        return;
+      }
+
+      categorySelect.innerHTML = `<option value="" disabled selected>Selecciona una categoría</option>`;
+      categories.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat.id;       // esto es lo que se envía en la petición
+        option.textContent = cat.name; // esto es lo que se muestra al usuario
+        categorySelect.appendChild(option);
+      });
+    } catch (err) {
+      categorySelect.innerHTML = `<option value="" disabled selected>Error al cargar categorías</option>`;
+    }
+  }
+
+  // Recarga las categorías cada vez que se entra a la vista de transacciones,
+  // para reflejar categorías creadas recientemente.
+  document.querySelector('[data-view="transactions"]').addEventListener("click", loadCategories);
+
+  // --- Formulario: Registrar transacción ---
+  const transactionForm = document.getElementById("transaction-form");
+  const transactionStatus = document.getElementById("transaction-status");
+
+  transactionForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(transactionForm);
+
+    const payload = {
+      categoryId: formData.get("categoryId"),
+      // TODO: agrega aquí el resto de campos del payload (monto, fecha, descripción, etc.)
+    };
+
+    transactionStatus.textContent = "Guardando...";
+    transactionStatus.className = "";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/transactions`, {
+        method: "POST",
+        headers: {
+          "Accept": "*/*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+
+      transactionStatus.textContent = "Transacción creada correctamente.";
+      transactionStatus.className = "status-ok";
+      transactionForm.reset();
+    } catch (err) {
+      transactionStatus.textContent = `Error al crear la transacción: ${err.message}`;
+      transactionStatus.className = "status-error";
+    }
+  });
+</script>
+
+</body>
+</html>

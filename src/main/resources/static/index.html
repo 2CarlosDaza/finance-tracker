@@ -164,47 +164,74 @@
 
 <div class="layout">
   <nav>
-    <button class="nav-btn active" data-view="categories">Registrar categoría</button>
-    <button class="nav-btn" data-view="transactions">Registrar transacción</button>
+    <button class="nav-btn active" data-view="categories">Add Category</button>
+    <button class="nav-btn" data-view="transactions">Add Transaction</button>
   </nav>
 
   <main>
 
-    <!-- Vista: Registrar categoría -->
+    <!-- Vista: Add category -->
     <section class="view active" id="view-categories">
-      <h2>Registrar categoría</h2>
-      <p class="hint">Crea una nueva categoría de ingreso o gasto.</p>
+      <h2>Add Category</h2>
+      <p class="hint">Create a new expense or income category.</p>
 
       <form id="category-form">
         <label>
-          Nombre
+          category name
           <input type="text" name="name" placeholder="food" required>
         </label>
         <label>
-          Descripción
+          Category description
           <input type="text" name="description" placeholder="food expenses">
         </label>
         <label>
-          Tipo
+          Type
           <select name="type" required>
             <option value="EXPENSE">EXPENSE</option>
             <option value="INCOME">INCOME</option>
           </select>
         </label>
-        <button type="submit" class="submit">Guardar categoría</button>
+        <button type="submit" class="submit">Save Category</button>
         <div id="category-status"></div>
       </form>
     </section>
 
     <!-- Vista: Registrar transacción -->
     <section class="view" id="view-transactions">
-      <h2>Registrar transacción</h2>
-      <p class="hint">Pendiente de conectar al endpoint correspondiente.</p>
-      <div class="todo">
-        Aquí va el formulario de transacciones. Conecta el <code>fetch</code>
-        al endpoint que definas (por ejemplo <code>POST /api/v1/transactions</code>)
-        siguiendo el mismo patrón usado en <code>category-form</code>.
-      </div>
+      <h2>Add transaction</h2>
+      <p class="hint">Pending to conect to corresponding endpoint</p>
+      <form id="transaction-form">
+        
+        <label>
+          Category
+          <select name="categoryId" id="category-select" required>
+            <option value="" disabled selected>Loading categories...</option>
+          </select>
+        </label>
+
+        <label>
+          amount
+          <input type="text" name="amount" placeholder="0" required>
+        </label>
+
+        <label>
+          description
+          <input type="text" name="description" placeholder="lunch">
+        </label>
+
+        <label>
+          Date
+          <input type="date" name="transaction-date"  required>
+        </label>
+
+        <label>
+          currency
+          <input type="text" name="currency" placeholder="COP" required>
+        </label>
+
+        <button type="submit" class="submit">Save Transaction</button>
+        <div id="transaction-status"></div>
+      </form>
     </section>
 
   </main>
@@ -213,7 +240,7 @@
 <script>
   const API_BASE = "http://localhost:8080";
 
-  // --- Navegación entre vistas ---
+  // --- Navegation between views/pages ---
   const navButtons = document.querySelectorAll(".nav-btn");
   const views = document.querySelectorAll(".view");
 
@@ -265,6 +292,82 @@
       categoryStatus.className = "status-error";
     }
   });
+
+  // --- Cargar categorías en el select de transacciones ---
+  const categorySelect = document.getElementById("category-select");
+
+
+  async function loadCategories(){
+    try{
+        const res = await fetch(`${API_BASE}/api/v1/categories`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const categories = await res.json();
+
+        categorySelect.innerHTML = "";
+
+        if(categories.length === 0){
+          categorySelect.innerHTML = `<option value="" disabled selected> There are no added categories</option>`;
+          return;
+        }
+
+        categorySelect.innerHTML = `<option value="" disabled selected>Select a category</option>`;
+        categories.forEach(cat =>{
+          const option = document.createElement("option");
+          option.value = cat.id;
+          option.textContent = cat.name;
+          categorySelect.appendChild(option);
+        });
+      }catch(err){
+        categorySelect.innerHTML = `<option value="" disabled selected> Error on loading categories</option>`;
+      }
+    }
+    //Recarga las categorías cada vez que se entra a la vista de transacciones,
+    //para reflejar las categorías creadas recientemente.
+    document.querySelector('[data-view="transactions"]').addEventListener("click",loadCategories);
+    //--- Formulario: Registrar transacción ---
+    const transactionForm = document.getElementById("transaction-form");
+    const transactionStatus = document.getElementById("transaction-status");
+
+    transactionForm.addEventListener("submit",async (e)=>{
+      e.preventDefault();
+      const formData = new FormData(transactionForm);
+
+      const payload = {
+        categoryId: formData.get("categoryId"),
+        amount: formData.get("amount"),
+        currency:formData.get("currency"),
+        description:formData.get("description"),
+        transactionDate:formData.get("transaction-date"),
+      };
+
+      transactionStatus.textContent = "Saving...";
+      transactionStatus.className = "";
+
+      try{
+        const res = await fetch(`${API_BASE}/api/v1/transactions`,{
+          method: "POST",
+          headers: {
+            "Accept":"*/*",
+            "Content-Type":"application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if(!res.ok){
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+
+        transactionStatus.textContent = "Transaction created correctly";
+        transactionStatus.className = "status-ok";
+        transactionForm.reset();
+      }catch(err){
+        transactionStatus.textContent = `Error creating transaction: ${err.message}`;
+        transactionStatus.className = "status-error";
+      }
+    })
+  ;
+
 </script>
 
 </body>
