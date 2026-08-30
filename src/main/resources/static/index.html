@@ -153,6 +153,26 @@
     border-radius: 4px;
     font-size: 12px;
   }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background: var(--panel);
+}
+
+tr:hover {
+    background: rgba(255,255,255,0.03);
+}
 </style>
 </head>
 <body>
@@ -194,12 +214,24 @@
         <button type="submit" class="submit">Save Category</button>
         <div id="category-status"></div>
       </form>
+      <h3>Categories</h3>
+      <table id ="category-table">
+          <thead>
+              <tr>
+                  <th>name</th>
+                  <th>description</th>
+                  <th>type</th>               
+              </tr>
+          </thead>
+          <tbody>
+          </tbody>
+      </table>
     </section>
 
     <!-- Vista: Registrar transacción -->
     <section class="view" id="view-transactions">
       <h2>Add transaction</h2>
-      <p class="hint">Pending to conect to corresponding endpoint</p>
+      <p class="hint">Create a new income or expense transaction</p>
       <form id="transaction-form">
         
         <label>
@@ -232,6 +264,19 @@
         <button type="submit" class="submit">Save Transaction</button>
         <div id="transaction-status"></div>
       </form>
+      <h3>Transactions by Category</h3>
+      <table id ="transactions-table">
+        <thead>
+            <tr>
+                <th>CategoryName</th>
+                <th>Type</th>
+                <th>Total</th>
+                <th>transaction Count</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>  
+      </table>
     </section>
 
   </main>
@@ -327,6 +372,8 @@
     //--- Formulario: Registrar transacción ---
     const transactionForm = document.getElementById("transaction-form");
     const transactionStatus = document.getElementById("transaction-status");
+    const transactionsTableBody = document.querySelector("#transactions-table tbody");
+    const categoriesTableBody = document.querySelector("#category-table tbody");
 
     transactionForm.addEventListener("submit",async (e)=>{
       e.preventDefault();
@@ -361,13 +408,78 @@
         transactionStatus.textContent = "Transaction created correctly";
         transactionStatus.className = "status-ok";
         transactionForm.reset();
+        
+        loadTransactions();
       }catch(err){
         transactionStatus.textContent = `Error creating transaction: ${err.message}`;
         transactionStatus.className = "status-error";
       }
-    })
-  ;
+    });
 
+    async function loadCategoriesTable(){
+        try{
+            const res = await fetch(`${API_BASE}/api/v1/categories`);
+
+            if(!res.ok){
+              throw new Error(`HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            console.log(data);
+
+            categoriesTableBody.innerHTML = "";
+
+            data.forEach(category =>{
+              const row = document.createElement("tr");
+
+              row.innerHTML =`
+                <td>${category.name}</td>
+                <td>${category.description}</td>
+                <td>${category.type}</td>
+              `;
+              categoriesTableBody.appendChild(row);
+            });
+
+        }catch(err){
+          console.error("Error loading categories table", err);
+        }
+    }
+
+    async function loadTransactions(){
+      try{
+          const res = await fetch(`${API_BASE}/api/v1/transactions/summary/year?year=2026`);
+
+          if(!res.ok){
+            throw new Error(`HTTP ${res.status}`);
+          }
+
+          const data = await res.json();
+          
+          console.log(data);
+          console.log(Array.isArray(data));
+          console.log(Array.isArray(data.byCategory));
+          
+          transactionsTableBody.innerHTML = "";
+          data.byCategory.forEach(transaction => {
+              const row = document.createElement("tr");
+          
+              row.innerHTML =`
+                  <td>${transaction.categoryName}</td>
+                  <td>${transaction.type}</td>
+                  <td>${transaction.total}</td>
+                  <td>${transaction.transactionCount}</td>
+              `;
+
+              transactionsTableBody.appendChild(row);
+          });
+
+      }catch(err){
+        console.error("Error loading transactions table", err);
+      }
+    }
+    loadCategoriesTable();
+    loadTransactions();
 </script>
 
 </body>
