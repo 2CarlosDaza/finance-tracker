@@ -173,6 +173,91 @@ th {
 tr:hover {
     background: rgba(255,255,255,0.03);
 }
+ /* --- Lista de transacciones agrupada por día --- */
+  .tx-list {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 520px;
+  }
+  .tx-day-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .tx-day-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tx-day-number {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 40px;
+  }
+  .tx-day-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+  .tx-day-weekday {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .tx-day-date {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tx-day-totals {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .tx-total-income { color: var(--ok); }
+  .tx-total-expense { color: var(--danger); }
+  .tx-day-chevron {
+    color: var(--muted);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .tx-day-card.open .tx-day-chevron {
+    transform: rotate(180deg);
+  }
+  .tx-day-items {
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .tx-day-card.open .tx-day-items {
+    display: block;
+  }
+  .tx-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+  .tx-item:first-child { border-top: none; }
+  .tx-item-category { color: var(--text); }
+  .tx-item-desc { color: var(--muted); font-size: 12px; }
+  .tx-item-amount.INCOME { color: var(--ok); }
+  .tx-item-amount.EXPENSE { color: var(--danger); }
+  .tx-empty {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 12px 0;
+  }
 </style>
 </head>
 <body>
@@ -253,7 +338,7 @@ tr:hover {
 
         <label>
           Date
-          <input type="date" name="transaction-date"  required>
+          <input type="date" name="transaction-date" placeholder="30/08/2026"  required>
         </label>
 
         <label>
@@ -277,8 +362,13 @@ tr:hover {
         <tbody>
         </tbody>  
       </table>
-    </section>
+      <h3>Transactions by Day</h3>
+      <div id="tx-list" class="tx-list"></div>
 
+      <label id = "income" name = "income"> Total Income:</label>
+      <label id = "expenses" name = "expenses"> Total Expense:</label>
+      <label id = "balance" name = "balance"> Total Balance:</label>
+    </section>
   </main>
 </div>
 
@@ -340,7 +430,6 @@ tr:hover {
 
   // --- Cargar categorías en el select de transacciones ---
   const categorySelect = document.getElementById("category-select");
-
 
   async function loadCategories(){
     try{
@@ -446,6 +535,10 @@ tr:hover {
         }
     }
 
+    const income = document.getElementById("income");
+    const expenses = document.getElementById("expenses");
+    const balance = document.getElementById("balance");
+
     async function loadTransactions(){
       try{
           const res = await fetch(`${API_BASE}/api/v1/transactions/summary/year?year=2026`);
@@ -473,6 +566,10 @@ tr:hover {
 
               transactionsTableBody.appendChild(row);
           });
+
+          income.innerHTML = `Total Income = ${data.totalIncome}`;
+          expenses.innerHTML = `Total Expense = ${data.totalExpense}`;
+          balance.innerHTML = `Total Balance = ${data.balance}`;
 
       }catch(err){
         console.error("Error loading transactions table", err);
