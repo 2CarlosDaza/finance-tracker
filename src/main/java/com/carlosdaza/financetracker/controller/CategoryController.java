@@ -42,7 +42,6 @@ public class CategoryController {
     @Operation(summary = "Get category by ID")
     public ResponseEntity<FinanceDto.CategoryResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(categoryService.getById(id));
-        
     }
 
     @PutMapping("/{id}")
